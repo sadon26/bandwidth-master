@@ -1,0 +1,25 @@
+{
+  "name": "bwm-backend",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "NODE_ENV=development nodemon server.js"
+  },
+  "dependencies": {
+    "@profullstack/transcoder": "^1.1.2",
+    "@react-router/express": "^7.9.6",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "ffmpeg-static": "^5.3.0",
+    "hls.js": "^1.6.15",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "multer": "^2.0.2",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.22"
+  }
+}
