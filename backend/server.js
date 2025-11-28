@@ -27,9 +27,6 @@ app.use(
   })
 );
 
-// enable Vercel serverless compatibility
-export default (req, res) => app(req, res);
-
 app.use(express.json());
 app.use(morgan("dev"));
 
