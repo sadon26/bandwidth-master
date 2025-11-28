@@ -332,12 +332,21 @@ app.post("/api/upload", authMiddleware, upload.single("file"), (req, res) => {
   });
 });
 
-app.all(
-  "*",
-  createRequestHandler({
-    build,
-  })
-);
+export default async function handler(req, res) {
+  // Serve API endpoints
+  if (req.url.startsWith("/api")) {
+    if (req.url === "/api/test") {
+      res.status(200).json({ message: "API works!" });
+      return;
+    }
+    res.status(404).json({ message: "Not found" });
+    return;
+  }
+
+  // Serve SSR frontend
+  const requestHandler = createRequestHandler({ build });
+  return requestHandler(req, res);
+}
 
 /* ---------------------------
    START SERVER
