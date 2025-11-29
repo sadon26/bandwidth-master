@@ -37,7 +37,8 @@ export default function MediaCard({ media, layout = "grid" }) {
             {media.name}
           </div>
           <div className="text-sm text-slate-500">
-            {(media.size / 1024 / 1024).toFixed(2)} MB • {media.type}
+            {(media.size / 1024 / 1024).toFixed(2)} MB •{" "}
+            {media.type === "raw" ? "audio" : media.type}
           </div>
         </div>
       </div>
