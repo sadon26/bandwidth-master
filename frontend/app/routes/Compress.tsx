@@ -6,6 +6,7 @@ import useJobStatus from "../hooks/useJobStatus";
 import { useParams } from "react-router";
 import HLSPlayer from "./HlsPlayer";
 import CompressionChart from "~/components/CompressionChart";
+import RippleIcon from "../assets/ripples.svg";
 
 export default function Compress() {
   const { mediaId } = useParams();
@@ -44,7 +45,12 @@ export default function Compress() {
     return `${h}${m}m:${s}s`;
   }
 
-  if (!media) return <div className="p-6">Loading media...</div>;
+  if (!media)
+    return (
+      <div className="p-6 flex justify-center w-full">
+        <img width={100} src={RippleIcon} alt="ripple-icon" />
+      </div>
+    );
 
   const backendUrl = import.meta.env.VITE_BACKEND_URL || BACKEND_URL;
 

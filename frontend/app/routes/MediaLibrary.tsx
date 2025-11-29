@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { listMedia } from "../api";
 import MediaCard from "../components/MediaCard";
 import UploadForm from "../components/UploadForm";
+import RippleIcon from "../assets/ripples.svg";
 
 export default function MediaLibrary() {
   const [list, setList] = useState([]);
@@ -22,7 +23,11 @@ export default function MediaLibrary() {
   }, []);
 
   if (loading) {
-    return <div>Loading media...</div>;
+    return (
+      <div className="p-6 flex justify-center w-full">
+        <img width={100} src={RippleIcon} alt="ripple-icon" />
+      </div>
+    );
   }
 
   return (

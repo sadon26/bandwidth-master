@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { BACKEND_URL, getMedia } from "../api";
 import { useNavigate, useParams } from "react-router";
+import RippleIcon from "../assets/ripples.svg";
 
 export default function Player() {
   const { mediaId } = useParams();
@@ -96,7 +97,12 @@ export default function Player() {
     );
   }
 
-  if (!media) return <div className="p-8">Loading...</div>;
+  if (!media)
+    return (
+      <div className="p-6 flex justify-center w-full">
+        <img width={100} src={RippleIcon} alt="ripple-icon" />
+      </div>
+    );
 
   const backend = import.meta.env.VITE_BACKEND_URL || BACKEND_URL;
 
