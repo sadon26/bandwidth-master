@@ -37,14 +37,6 @@ export default function Compress() {
     <div className="space-y-6 p-6">
       <h2 className="text-2xl font-bold">Compress: {media.id}</h2>
 
-      {status?.status === "finished" && (
-        <CompressionChart
-          originalSize={status?.inputSize}
-          compressedSize={status?.outputSize}
-          bitrate={status?.bitrate}
-        />
-      )}
-
       <div className="flex flex-col md:flex-row gap-6">
         {/* LEFT COLUMN: Previews and Job Status */}
         <div className="flex-1 space-y-4">
@@ -112,6 +104,13 @@ export default function Compress() {
 
         {/* RIGHT COLUMN: Controls */}
         <div className="md:w-80 shrink-0">
+          {status?.status === "finished" && (
+            <CompressionChart
+              originalSize={status?.inputSize}
+              compressedSize={status?.outputSize}
+              bitrate={status?.bitrate}
+            />
+          )}
           {/* Job Status */}
           <div className="bg-white p-4 rounded shadow mb-4">
             <div className="font-semibold mb-2">Job Status</div>
@@ -149,6 +148,7 @@ export default function Compress() {
               <div className="text-sm text-slate-500">No job started</div>
             )}
           </div>
+
           <CompressionControls
             media={media}
             mediaId={mediaId}

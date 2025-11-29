@@ -32,7 +32,7 @@ export default function CompressionChart({
         data: [originalMB, compressedMB],
         backgroundColor: ["#1d4ed8", "orange"],
         borderRadius: 8,
-        barThickness: 80,
+        barThickness: 30,
       },
     ],
   };
@@ -50,17 +50,23 @@ export default function CompressionChart({
     scales: {
       y: {
         beginAtZero: true,
+        title: { display: true, text: "Megabytes" },
+      },
+      x: {
+        beginAtZero: true,
       },
     },
   };
 
   return (
-    <div className="mt-10 p-6 bg-white shadow-md rounded-xl">
-      <h2 className="text-xl font-semibold mb-4">Compression Results</h2>
+    <div className="p-6 bg-white shadow-md rounded-xl mb-4">
+      <h2 className="text-sm text-center font-semibold mb-4">
+        Compression Results
+      </h2>
 
       <Bar data={data} options={options} />
 
-      <div className="mt-6 text-sm text-slate-700">
+      <div className="mt-6 text-xs flex flex-col items-center text-slate-700">
         <p>
           <strong>Original Size:</strong> {originalMB.toFixed(2)} MB
         </p>
