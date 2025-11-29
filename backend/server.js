@@ -11,8 +11,8 @@ import multer from "multer";
 import bcrypt from "bcryptjs";
 import { spawn } from "child_process";
 import ffmpegPath from "ffmpeg-static";
-import { createRequestHandler } from "@react-router/express";
-import * as build from "../frontend/build/server/index.js";
+// import { createRequestHandler } from "@react-router/express";
+// import * as build from "../frontend/build/server/index.js";
 
 // --- CONFIGURATION ---
 const __filename = fileURLToPath(import.meta.url);
@@ -22,14 +22,14 @@ const app = express();
 
 app.use(
   cors({
-    origin: process.env.CLIENT_ORIGIN || "*", // for prod, set exact origin
+    origin: "https://bandwidth-master-37z1.vercel.app" || "*", // for prod, set exact origin
   })
 );
-app.use(
-  express.static(path.join(__dirname, "../frontend/build/client"), {
-    index: false,
-  })
-);
+// app.use(
+//   express.static(path.join(__dirname, "../frontend/build/client"), {
+//     index: false,
+//   })
+// );
 
 app.use(express.json());
 app.use(morgan("dev"));
@@ -336,21 +336,21 @@ app.post("/api/upload", authMiddleware, upload.single("file"), (req, res) => {
   });
 });
 
-export default async function handler(req, res) {
-  // Serve API endpoints
-  if (req.url.startsWith("/api")) {
-    if (req.url === "/api/test") {
-      res.status(200).json({ message: "API works!" });
-      return;
-    }
-    res.status(404).json({ message: "Not found" });
-    return;
-  }
+// export default async function handler(req, res) {
+//   // Serve API endpoints
+//   if (req.url.startsWith("/api")) {
+//     if (req.url === "/api/test") {
+//       res.status(200).json({ message: "API works!" });
+//       return;
+//     }
+//     res.status(404).json({ message: "Not found" });
+//     return;
+//   }
 
-  // Serve SSR frontend
-  const requestHandler = createRequestHandler({ build });
-  return requestHandler(req, res);
-}
+//   // Serve SSR frontend
+//   const requestHandler = createRequestHandler({ build });
+//   return requestHandler(req, res);
+// }
 
 /* ---------------------------
    START SERVER
