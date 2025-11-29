@@ -29,6 +29,21 @@ export default function Compress() {
     }
   }
 
+  function formatDuration(ms: number): string {
+    if (typeof ms !== "number" || isNaN(ms)) return "00:00";
+
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    const h = hours > 0 ? `${hours}:` : "";
+    const m = hours > 0 ? String(minutes).padStart(2, "0") : String(minutes);
+    const s = String(seconds).padStart(2, "0");
+
+    return `${h}${m}m:${s}s`;
+  }
+
   if (!media) return <div className="p-6">Loading media...</div>;
 
   const backendUrl = import.meta.env.VITE_BACKEND_URL || BACKEND_URL;
@@ -123,6 +138,12 @@ export default function Compress() {
                     className="h-full bg-sky-600 transition-all"
                   />
                 </div>
+                {status?.status === "finished" && (
+                  <p className="text-sm text-slate-500">
+                    Transcode duration:{" "}
+                    {formatDuration(status?.updatedAt - status?.createdAt)}
+                  </p>
+                )}
                 {status?.outputPath && status?.status === "finished" && (
                   <div className="text-sm">
                     Output:{" "}
