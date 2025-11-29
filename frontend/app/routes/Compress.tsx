@@ -35,7 +35,7 @@ export default function Compress() {
 
   return (
     <div className="space-y-6 p-6">
-      <h2 className="text-2xl font-bold">Compress: {media.id}</h2>
+      <h2 className="text-lg md:text-2xl font-bold">Compress: {media.id}</h2>
 
       <div className="flex flex-col md:flex-row gap-6">
         {/* LEFT COLUMN: Previews and Job Status */}
