@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getMedia } from "../api";
+import { BACKEND_URL, getMedia } from "../api";
 import { useNavigate, useParams } from "react-router";
 
 export default function Player() {
@@ -98,7 +98,7 @@ export default function Player() {
 
   if (!media) return <div className="p-8">Loading...</div>;
 
-  const backend = import.meta.env.VITE_BACKEND_URL || "http://localhost:3001";
+  const backend = import.meta.env.VITE_BACKEND_URL || BACKEND_URL;
 
   return (
     <div className="space-y-8">

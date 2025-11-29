@@ -2,6 +2,7 @@ import { useState } from "react";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import Header from "~/components/Header";
+import { BACKEND_URL } from "~/api";
 
 export default function Upload() {
   const { token } = useAuth();
@@ -32,7 +33,7 @@ export default function Upload() {
     fd.append("fileType", fileType); // <-- NEW
 
     try {
-      const res = await axios.post("http://localhost:3001/api/upload", fd, {
+      const res = await axios.post(`${BACKEND_URL}/api/upload`, fd, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

@@ -62,7 +62,7 @@ const CompressionUI: FC<Props> = ({ mediaId }) => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <PreviewCard
           title="Original"
-          src={`http://localhost:3001${media.url}`}
+          src={`${window?.location.origin}${media.url}`}
           color="border-slate-300"
         />
         <PreviewCard

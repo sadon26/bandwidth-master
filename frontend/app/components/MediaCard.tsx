@@ -1,5 +1,6 @@
 import clsx from "clsx";
 import { useNavigate } from "react-router";
+import { BACKEND_URL } from "~/api";
 
 export default function MediaCard({ media, layout = "grid" }) {
   const nav = useNavigate();
@@ -21,7 +22,7 @@ export default function MediaCard({ media, layout = "grid" }) {
         >
           {isVideo ? (
             <video
-              src={`http://localhost:3001${media.url}`}
+              src={`${BACKEND_URL}${media.url}`}
               className="w-full h-full object-cover"
               muted
             />

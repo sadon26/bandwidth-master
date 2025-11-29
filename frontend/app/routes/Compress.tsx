@@ -1,6 +1,6 @@
 // Compress.tsx
 import { useEffect, useState } from "react";
-import { getMedia, startTranscode } from "../api";
+import { BACKEND_URL, getMedia, startTranscode } from "../api";
 import CompressionControls from "../components/CompressionControls";
 import useJobStatus from "../hooks/useJobStatus";
 import { useParams } from "react-router";
@@ -31,8 +31,7 @@ export default function Compress() {
 
   if (!media) return <div className="p-6">Loading media...</div>;
 
-  const backendUrl =
-    import.meta.env.VITE_BACKEND_URL || "http://localhost:3001";
+  const backendUrl = import.meta.env.VITE_BACKEND_URL || BACKEND_URL;
 
   return (
     <div className="space-y-6 p-6">

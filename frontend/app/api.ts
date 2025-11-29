@@ -1,9 +1,9 @@
 import axios from "axios";
 
-const BACKEND = "https://bandwidth-master-5.onrender.com";
+export const BACKEND_URL = "https://bandwidth-master-5.onrender.com";
 
 export const api = axios.create({
-  baseURL: BACKEND,
+  baseURL: BACKEND_URL,
   headers: {
     "Content-Type": "application/json",
   },
