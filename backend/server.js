@@ -20,7 +20,11 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-app.use(cors());
+app.use(
+  cors({
+    origin: process.env.CLIENT_ORIGIN || "*", // for prod, set exact origin
+  })
+);
 app.use(
   express.static(path.join(__dirname, "../frontend/build/client"), {
     index: false,

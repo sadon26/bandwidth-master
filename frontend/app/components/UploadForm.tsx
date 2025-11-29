@@ -1,5 +1,3 @@
-import React, { useState } from "react";
-import { uploadFile } from "../api";
 import { useNavigate } from "react-router";
 
 export default function UploadForm() {
