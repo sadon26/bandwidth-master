@@ -60,14 +60,33 @@ cloudinary.config({
   api_secret: "zcyxgefeLsgLwDH0g8q4XdY4Rjc",
 });
 
-// Multer storage for original uploads
+// Helper: detect file type based on extension
+function detectType(filename) {
+  const ext = path.extname(filename).toLowerCase();
+  if ([".mp4", ".mov", ".mkv", ".webm", ".avi", ".ts"].includes(ext))
+    return "video";
+  if ([".mp3", ".wav", ".aac", ".flac", ".ogg", ".m4a"].includes(ext))
+    return "audio";
+  if ([".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"].includes(ext))
+    return "image";
+  return "raw";
+}
+
+// --- MULTER STORAGE ---
 const storage = new CloudinaryStorage({
   cloudinary,
-  params: async (req, file) => ({
-    folder: "media",
-    resource_type: "auto", // auto detects audio/video/image
-  }),
+  params: (req, file) => {
+    let type = detectType(file.originalname);
+    if (type === "audio")
+      type = "raw"; // Cloudinary doesn't accept "audio" as resource_type
+    else if (type !== "video" && type !== "image") type = "raw";
+    return {
+      folder: "media",
+      resource_type: type,
+    };
+  },
 });
+
 const upload = multer({ storage });
 
 // --- USERS & AUTH ---
@@ -146,29 +165,6 @@ function createJob({ input, type = "transcode", outputPath = null }) {
 }
 
 /* ---------------------------
-   HELPER FUNCTIONS
---------------------------- */
-function detectType(filename) {
-  const ext = path.extname(filename).toLowerCase();
-  if ([".mp4", ".mov", ".mkv", ".webm", ".avi", ".ts"].includes(ext))
-    return "video";
-  if ([".mp3", ".wav", ".aac", ".flac", ".ogg", ".m4a"].includes(ext))
-    return "audio";
-  return "unknown";
-}
-
-function formatBytes(bytes) {
-  if (bytes < 1024) return bytes + " B";
-  const units = ["KB", "MB", "GB"];
-  let i = -1;
-  do {
-    bytes /= 1024;
-    i++;
-  } while (bytes >= 1024 && i < units.length - 1);
-  return bytes.toFixed(2) + " " + units[i];
-}
-
-/* ---------------------------
    UPLOAD ENDPOINT
 --------------------------- */
 app.post(
@@ -177,18 +173,22 @@ app.post(
   upload.single("file"),
   async (req, res) => {
     try {
-      const file = req.file;
-      if (!file) return res.status(400).json({ error: "no file" });
+      if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+
+      const origType = detectType(req.file.originalname);
+      const type = origType === "audio" ? "audio" : origType; // FE expects audio/video/image
 
       res.json({
         ok: true,
-        name: file.originalname,
-        url: file.path, // Cloudinary URL
-        size: file.size,
+        name: req.file.originalname,
+        url: req.file.path,
+        size: req.file.size,
+        resource_type: type,
+        type,
       });
     } catch (err) {
       console.error("Upload error:", err);
-      res.status(500).json({ error: "internal" });
+      res.status(500).json({ error: err.message || JSON.stringify(err) });
     }
   }
 );
@@ -199,7 +199,7 @@ app.post(
 app.get("/api/media", async (req, res) => {
   try {
     const result = await cloudinary.search
-      .expression('folder="media"') // or public_id starts with media/
+      .expression('folder="media"')
       .max_results(500)
       .execute();
 
@@ -208,14 +208,9 @@ app.get("/api/media", async (req, res) => {
       name: r.public_id.split("/").pop(),
       url: r.secure_url,
       size: r.bytes,
-
-      // map to FE expected type
-      type:
-        r.resource_type === "video"
-          ? "video"
-          : r.resource_type === "image"
-          ? "image"
-          : "audio",
+      type: ["video", "image", "audio"].includes(r.resource_type)
+        ? r.resource_type
+        : "raw",
     }));
 
     res.json({ data });
@@ -228,7 +223,6 @@ app.get("/api/media", async (req, res) => {
 app.get("/api/media/:mediaId", async (req, res) => {
   try {
     const publicId = `media/${req.params.mediaId}`;
-
     const result = await cloudinary.search
       .expression(`public_id="${publicId}"`)
       .max_results(1)
@@ -238,30 +232,28 @@ app.get("/api/media/:mediaId", async (req, res) => {
       return res.status(404).json({ error: "media not found" });
 
     const r = result.resources[0];
+    const type = ["video", "image", "audio"].includes(r.resource_type)
+      ? r.resource_type
+      : "raw";
 
-    const data = {
-      id: r.public_id,
-      name: r.public_id.split("/").pop(),
-      url: r.secure_url,
-      size: r.bytes,
-      type:
-        r.resource_type === "video"
-          ? "video"
-          : r.resource_type === "image"
-          ? "image"
-          : "audio",
-    };
-
-    res.json({ data });
+    res.json({
+      data: {
+        id: r.public_id,
+        name: r.public_id.split("/").pop(),
+        url: r.secure_url,
+        size: r.bytes,
+        type: type === "raw" ? "audio" : type,
+      },
+    });
   } catch (err) {
     console.error("Cloudinary fetch error:", err);
     res.status(500).json({ error: "failed to fetch media" });
   }
 });
 
-/**
- * Download file from URL to local temp path
- */
+/* ---------------------------
+   DOWNLOAD & TRANSCODE
+--------------------------- */
 async function downloadFile(url, localPath) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Failed to download file: ${res.statusText}`);
@@ -273,9 +265,7 @@ async function downloadFile(url, localPath) {
   return localPath;
 }
 
-/**
- * Transcode and upload to Cloudinary (Render-safe)
- */
+// Transcode function remains same; ensures audio/video types
 export async function transcodeFile(
   jobId,
   mediaUrl,
@@ -287,140 +277,149 @@ export async function transcodeFile(
     const tempDir = "/tmp";
     fs.mkdirSync(tempDir, { recursive: true });
 
-    // Detect type
     const ext = path.extname(mediaUrl).toLowerCase();
     const isVideo = [".mp4", ".mov", ".mkv", ".webm", ".avi", ".ts"].includes(
       ext
     );
-    const outExt = isVideo ? "mp4" : "mp3";
 
+    // Video -> mp4, Audio -> m4a (AAC)
+    const outExt = isVideo ? "mp4" : "m4a";
     const inputPath = path.join(tempDir, `${jobId}-input${ext}`);
     const outputPath = path.join(tempDir, `${jobId}-output.${outExt}`);
 
-    // Download file from Cloudinary
+    // Download file locally
     await downloadFile(mediaUrl, inputPath);
 
-    // Init JOB
-    JOBS[jobId].startedAt = Date.now();
-    JOBS[jobId].status = "processing";
-    JOBS[jobId].progress = 0;
-    JOBS[jobId].updatedAt = Date.now();
+    // Initialize job
+    JOBS[jobId] = {
+      ...JOBS[jobId],
+      status: "processing",
+      progress: 0,
+      startedAt: Date.now(),
+      updatedAt: Date.now(),
+    };
     persistJobs();
 
-    // FFmpeg args
-    const videoCodec = !codec || codec === "h264" ? "libx264" : codec;
-    let audioBitrate = bitrate || "1200k";
-    if (/^\d+$/.test(audioBitrate)) audioBitrate = `${audioBitrate}k`;
+    // Normalize audio bitrate
+    let audioBitrate = /^\d+$/.test(bitrate)
+      ? `${bitrate}k`
+      : bitrate || "1200k";
 
-    const args = ["-y", "-i", inputPath];
+    // Build FFmpeg args
+    const args = ["-y", "-i", inputPath, "-threads", "0"];
+
     if (isVideo) {
       if (width) args.push("-vf", `scale=${width}:-2`);
-      args.push("-c:v", videoCodec, "-crf", "23", "-preset", "slow");
-      args.push("-c:a", "aac", "-b:a", audioBitrate);
+      args.push(
+        "-c:v",
+        codec || "libx264",
+        "-preset",
+        "veryfast",
+        "-crf",
+        "24",
+        "-c:a",
+        "aac",
+        "-b:a",
+        audioBitrate
+      );
     } else {
-      args.push("-c:a", "aac", "-b:a", audioBitrate);
+      // Audio-only transcoding
+      args.push("-c:a", "aac", "-b:a", audioBitrate, "-f", "ipod"); // Forces .m4a container
     }
+
     args.push(outputPath);
 
-    // Use system ffmpeg if ffmpeg-static fails on Render
-    const ffmpegCmd = "ffmpeg";
-
+    // Run FFmpeg
     await new Promise((resolve, reject) => {
-      const ff = spawn(ffmpegCmd, args, { windowsHide: true });
-
+      const ff = spawn("ffmpeg", args);
       ff.stderr.on("data", (data) => {
-        const line = data.toString().trim();
-        console.log(`[ffmpeg][job ${jobId}]`, line);
-
+        const line = data.toString();
         if (line.includes("time=")) {
-          JOBS[jobId].progress = Math.min(JOBS[jobId].progress + 3, 99);
+          JOBS[jobId].progress = Math.min(JOBS[jobId].progress + 5, 99);
           JOBS[jobId].updatedAt = Date.now();
           persistJobs();
         }
       });
-
-      ff.on("error", (err) => reject(err));
-      ff.on("close", (code) => {
-        if (code === 0) resolve();
-        else reject(new Error(`FFmpeg exited with code ${code}`));
-      });
+      ff.on("close", (code) =>
+        code === 0
+          ? resolve()
+          : reject(new Error(`FFmpeg exited with code ${code}`))
+      );
     });
 
-    // File sizes
     const inputSize = fs.statSync(inputPath).size;
     const outputSize = fs.statSync(outputPath).size;
 
-    // Upload transcoded file to Cloudinary
+    JOBS[jobId].status = "uploading to bucket";
+    persistJobs();
+
+    // Upload to Cloudinary
     const uploaded = await cloudinary.uploader.upload(outputPath, {
-      resource_type: "video", // works for mp4 and mp3
+      resource_type: isVideo ? "video" : "raw", // Audio → raw
       folder: "media/transcoded",
       public_id: jobId,
       overwrite: true,
     });
 
-    // Update JOBS
-    JOBS[jobId].status = "finished";
-    JOBS[jobId].progress = 100;
-    JOBS[jobId].updatedAt = Date.now();
-    JOBS[jobId].outputPath = uploaded.secure_url;
-    JOBS[jobId].inputSize = inputSize;
-    JOBS[jobId].outputSize = outputSize;
-    JOBS[jobId].outputSizeHuman = `${(outputSize / 1024 / 1024).toFixed(2)} MB`;
-    JOBS[jobId].compressionRatio = outputSize / inputSize;
-    JOBS[jobId].bitrate = bitrate;
+    JOBS[jobId] = {
+      ...JOBS[jobId],
+      status: "finished",
+      progress: 100,
+      updatedAt: Date.now(),
+      outputPath: uploaded.secure_url,
+      inputSize,
+      outputSize,
+      outputSizeHuman: `${(outputSize / 1024 / 1024).toFixed(2)} MB`,
+      compressionRatio: outputSize / inputSize,
+      bitrate,
+    };
     persistJobs();
 
-    // Cleanup
     fs.rmSync(inputPath, { force: true });
     fs.rmSync(outputPath, { force: true });
-
-    console.log(`[transcode][job ${jobId}] completed`);
   } catch (err) {
-    console.error(`[transcode error][job ${jobId}]`, err);
-    JOBS[jobId].status = "error";
-    JOBS[jobId].detail = err.message;
-    JOBS[jobId].updatedAt = Date.now();
+    console.error(`[transcode error][${jobId}]`, err);
+    JOBS[jobId] = {
+      ...JOBS[jobId],
+      status: "error",
+      detail: err.message,
+      updatedAt: Date.now(),
+    };
     persistJobs();
   }
 }
 
-/**
- * /api/transcode endpoint
- */
+/* ---------------------------
+   TRANSCODE ENDPOINTS
+--------------------------- */
 app.post("/api/transcode", async (req, res) => {
   try {
     const { id, codec = "libx264", bitrate = "800k", width } = req.body;
     if (!id) return res.status(400).json({ error: "missing id" });
 
-    // Fetch media info from Cloudinary
     const search = await cloudinary.search
       .expression(`public_id="media/${id}"`)
       .max_results(1)
       .execute();
-
-    if (!search.resources.length) {
+    if (!search.resources.length)
       return res.status(400).json({ error: "Invalid media file" });
-    }
 
     const mediaResource = search.resources[0];
     const mediaUrl = mediaResource.secure_url;
 
-    // Create JOB with all fields
-    const job = createJob({ input: id, type: "transcode" });
+    const job = createJob({ input: id });
     const jobId = job.jobId;
 
-    JOBS[jobId].outputPath = null; // will be set when done
+    JOBS[jobId].outputPath = null;
     JOBS[jobId].status = "processing";
     persistJobs();
 
-    // Fire-and-forget transcoding
     transcodeFile(jobId, mediaUrl, codec, bitrate, width);
 
-    // FE-safe response
     res.json({ jobId, outputUrl: JOBS[jobId].outputPath });
-  } catch (e) {
-    console.error("/api/transcode error", e);
-    return res.status(500).json({ error: "internal" });
+  } catch (err) {
+    console.error("/api/transcode error", err);
+    res.status(500).json({ error: "internal" });
   }
 });
 

@@ -14,7 +14,7 @@ export default function useJobStatus(jobId, { interval = 1500 } = {}) {
         const s = await getJobStatus(jobId);
         if (!mounted) return;
         setStatus(s);
-        if (s.status === "processing") {
+        if (["processing", "uploading to bucket"].includes(s.status)) {
           timer.current = setTimeout(poll, interval);
         }
       } catch (e) {

@@ -7,15 +7,21 @@ export default function MediaLibrary() {
   const [list, setList] = useState([]);
   const [view, setView] = useState("grid");
   const [q, setQ] = useState("");
+  const [loading, setLoading] = useState(true);
 
   async function load() {
     const data = await listMedia();
+    setLoading(false);
     setList(data);
   }
 
   useEffect(() => {
     load();
   }, []);
+
+  if (loading) {
+    return <div>Loading media...</div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -85,7 +91,7 @@ export default function MediaLibrary() {
             <div className="font-semibold mb-1">About</div>
             <div className="text-sm text-slate-600">
               Use the Upload form to add media. Use compress to create
-              transcodes (mp4 or HLS)
+              transcodes
             </div>
           </div>
           <UploadForm />

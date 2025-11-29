@@ -132,7 +132,7 @@ export default function Player() {
             src={media.url}
           />
         ) : (
-          <audio controls className="w-full" src={`${backend}${media.url}`} />
+          <audio controls className="w-full" src={media.url} />
         )}
 
         <div className="mt-4 text-sm text-slate-600 grid grid-cols-2 gap-4">

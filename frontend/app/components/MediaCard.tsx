@@ -1,6 +1,5 @@
 import clsx from "clsx";
 import { useNavigate } from "react-router";
-import { BACKEND_URL } from "~/api";
 
 export default function MediaCard({ media, layout = "grid" }) {
   const nav = useNavigate();
@@ -10,7 +9,9 @@ export default function MediaCard({ media, layout = "grid" }) {
     <div
       className={clsx(
         "border rounded-lg p-4 shadow-sm hover:shadow-lg transition",
-        layout === "list" ? "flex items-center justify-between" : ""
+        layout === "list"
+          ? "flex items-center justify-between flex-wrap gap-3"
+          : ""
       )}
     >
       <div className={clsx(layout === "list" ? "flex items-center gap-4" : "")}>

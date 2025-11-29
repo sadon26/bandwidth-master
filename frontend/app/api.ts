@@ -1,7 +1,7 @@
 import axios from "axios";
 
-export const BACKEND_URL = "https://bandwidth-master-5.onrender.com";
-// export const BACKEND_URL = "http://localhost:3001";
+// export const BACKEND_URL = "https://bandwidth-master-5.onrender.com";
+export const BACKEND_URL = "http://localhost:3001";
 
 export const api = axios.create({
   baseURL: BACKEND_URL,

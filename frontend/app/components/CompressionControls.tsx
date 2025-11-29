@@ -3,27 +3,66 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router";
 
 const codecOptions = [
-  { value: "libx264", label: "H.264 (libx264) — Best Compatibility" },
+  // ------------------ VIDEO CODECS ------------------
+  {
+    value: "libx264",
+    label: "H.264 (libx264) — Best Compatibility",
+    types: ["video"],
+  },
   {
     value: "libx265",
     label: "H.265 / HEVC (libx265) — Smaller File, Less Compatible",
+    types: ["video"],
   },
-  { value: "libvpx", label: "VP8 (libvpx) — Web Compatible" },
-  { value: "libvpx-vp9", label: "VP9 (libvpx-vp9) — High Compression" },
-  { value: "libaom-av1", label: "AV1 (libaom-av1) — Next-Gen (Slow)" },
+  {
+    value: "libvpx",
+    label: "VP8 (libvpx) — Web Compatible",
+    types: ["video"],
+  },
+  {
+    value: "libvpx-vp9",
+    label: "VP9 (libvpx-vp9) — High Compression",
+    types: ["video"],
+  },
+  {
+    value: "libaom-av1",
+    label: "AV1 (libaom-av1) — Next-Gen (Slow)",
+    types: ["video"],
+  },
 
-  // Audio codecs (if fileType === "audio")
-  { value: "aac", label: "AAC — Recommended for Audio/Video" },
-  { value: "libmp3lame", label: "MP3 (libmp3lame)" },
-  { value: "libopus", label: "Opus (libopus)" },
-  { value: "flac", label: "FLAC — Lossless" },
+  // ------------------ AUDIO CODECS ------------------
+  {
+    value: "aac",
+    label: "AAC — Recommended for Audio/Video",
+    types: ["audio", "video"], // can encode audio in video or standalone audio
+  },
+  {
+    value: "libmp3lame",
+    label: "MP3 (libmp3lame)",
+    types: ["audio"],
+  },
+  {
+    value: "libopus",
+    label: "Opus (libopus)",
+    types: ["audio", "video"], // Opus works in audio-only and video containers (WebM)
+  },
+  {
+    value: "flac",
+    label: "FLAC — Lossless",
+    types: ["audio"],
+  },
 ];
 
 const map = { "1080p": 1920, "720p": 1280, "480p": 854, "360p": 640 };
 
-export default function CompressionControls({ media, mediaId, onStart }) {
+export default function CompressionControls({
+  media,
+  mediaId,
+  onStart,
+  status,
+}) {
   const [codec, setCodec] = useState("libx264");
-  const [resolution, setResolution] = useState("1080p");
+  const [resolution, setResolution] = useState(1280);
   const [bitrate, setBitrate] = useState(1200);
   const [params] = useSearchParams();
 
@@ -33,8 +72,6 @@ export default function CompressionControls({ media, mediaId, onStart }) {
     if (paramsBitrate) {
       setBitrate(Number(paramsBitrate?.slice(0, -1)));
     }
-
-    console.log(paramsWidth);
 
     if (paramsWidth) {
       setResolution(map[paramsWidth ? `${paramsWidth}p` : resolution] || "");
@@ -59,11 +96,14 @@ export default function CompressionControls({ media, mediaId, onStart }) {
           value={codec}
           onChange={(e) => setCodec(e.target.value)}
         >
-          {codecOptions.map(({ label, value }) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
+          {codecOptions.map(
+            ({ label, value, types }) =>
+              types.includes(media.type) && (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              )
+          )}
         </select>
       </div>
 
@@ -73,7 +113,7 @@ export default function CompressionControls({ media, mediaId, onStart }) {
           <select
             className="w-full border p-2 rounded text-sm"
             value={resolution}
-            onChange={(e) => setResolution(e.target.value)}
+            onChange={(e) => setResolution(Number(e.target.value))}
           >
             {Object.entries(map).map(([label, value]) => (
               <option key={value} value={value}>
@@ -109,12 +149,14 @@ export default function CompressionControls({ media, mediaId, onStart }) {
         >
           Share
         </button>
-        <button
-          className="px-4 py-2 bg-sky-600 text-white rounded"
-          onClick={start}
-        >
-          Start Compression
-        </button>
+        {!["processing", "uploading to bucket"].includes(status) && (
+          <button
+            className="px-4 py-2 bg-sky-600 text-white rounded"
+            onClick={start}
+          >
+            Start Compression
+          </button>
+        )}
       </div>
     </div>
   );

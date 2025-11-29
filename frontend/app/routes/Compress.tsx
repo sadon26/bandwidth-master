@@ -57,11 +57,7 @@ export default function Compress() {
                 />
               )
             ) : (
-              <audio
-                src={`${backendUrl}${media.url}`}
-                controls
-                className="w-full"
-              />
+              <audio src={media.url} controls className="w-full" />
             )}
           </div>
 
@@ -80,11 +76,7 @@ export default function Compress() {
                   />
                 )
               ) : (
-                <audio
-                  src={`${backendUrl}${status.outputPath}`}
-                  controls
-                  className="w-full"
-                />
+                <audio src={status.outputPath} controls className="w-full" />
               )
             ) : (
               <div className="text-slate-400 text-sm h-40 flex items-center justify-center">
@@ -151,6 +143,7 @@ export default function Compress() {
 
           <CompressionControls
             media={media}
+            status={status?.status}
             mediaId={mediaId}
             onStart={onStart}
           />
