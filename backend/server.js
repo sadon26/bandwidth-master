@@ -11,37 +11,41 @@ import multer from "multer";
 import bcrypt from "bcryptjs";
 import { spawn } from "child_process";
 import ffmpegPath from "ffmpeg-static";
-// import { createRequestHandler } from "@react-router/express";
-// import * as build from "../frontend/build/server/index.js";
+import { v2 as cloudinary } from "cloudinary";
+import { CloudinaryStorage } from "multer-storage-cloudinary";
+import fetch from "node-fetch";
 
 // --- CONFIGURATION ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Directory Paths
+const MEDIA_DIR = path.join(__dirname, "media");
+const TRANSCODE_DIR = path.join(MEDIA_DIR, "transcoded");
+const UPLOADS_DIR = path.join(MEDIA_DIR, "uploads");
+const PUBLIC_DIR = path.join(__dirname, "public");
+
+// Ensure directories exist
+[MEDIA_DIR, TRANSCODE_DIR, UPLOADS_DIR, PUBLIC_DIR].forEach((d) =>
+  fs.mkdirSync(d, { recursive: true })
+);
+
 const app = express();
 
 const allowedOrigins = [
-  "http://localhost:5173", // local dev frontend
-  "https://bandwidth-master-37z1.vercel.app", // production frontend
+  "http://localhost:5173",
+  "https://bandwidth-master-37z1.vercel.app",
 ];
 
 app.use(
   cors({
-    origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS: " + origin));
-      }
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) callback(null, true);
+      else callback(new Error("Not allowed by CORS: " + origin));
     },
     credentials: true,
   })
 );
-// app.use(
-//   express.static(path.join(__dirname, "../frontend/build/client"), {
-//     index: false,
-//   })
-// );
 
 app.use(express.json());
 app.use(morgan("dev"));
@@ -49,259 +53,24 @@ app.use(morgan("dev"));
 const PORT = process.env.PORT || 3001;
 const SECRET = process.env.JWT_SECRET || "bwm-dev-secret";
 
-// Directory Paths
-const MEDIA_DIR = path.join(__dirname, "media");
-const TRANSCODE_DIR = path.join(MEDIA_DIR, "transcoded");
-const UPLOADS_DIR = path.join(MEDIA_DIR, "uploads");
-const PUBLIC_DIR = path.join(__dirname, "public");
-const JOBS_FILE = path.join(__dirname, "jobs.json");
-
-// Ensure directories exist
-[MEDIA_DIR, TRANSCODE_DIR, UPLOADS_DIR, PUBLIC_DIR].forEach((d) =>
-  fs.mkdirSync(d, { recursive: true })
-);
-
-/* ---------------------------
-   JOB STORE
---------------------------- */
-let JOBS = {};
-function loadJobs() {
-  if (fs.existsSync(JOBS_FILE)) {
-    try {
-      JOBS = JSON.parse(fs.readFileSync(JOBS_FILE, "utf8") || "{}");
-    } catch (e) {
-      console.error("Failed to load jobs.json", e);
-      JOBS = {};
-    }
-  }
-}
-function persistJobs() {
-  fs.writeFileSync(JOBS_FILE, JSON.stringify(JOBS, null, 2));
-}
-loadJobs();
-
-function createJob({ input, type = "transcode", outputPath = null }) {
-  const jobId = uuidv4();
-  JOBS[jobId] = {
-    jobId,
-    input,
-    type,
-    status: "queued",
-    progress: 0,
-    outputPath,
-    createdAt: Date.now(),
-    startedAt: null,
-    updatedAt: Date.now(),
-    detail: null,
-    durationSec: null,
-  };
-  persistJobs();
-  return JOBS[jobId];
-}
-
-/* ---------------------------
-   STATIC SERVING
---------------------------- */
-app.use("/media", express.static(MEDIA_DIR));
-app.use("/media/transcoded", express.static(TRANSCODE_DIR));
-app.use("/ping-1mb.bin", express.static(path.join(PUBLIC_DIR, "ping-1mb.bin")));
-
-/* ---------------------------
-   SIMPLE MEDIA LIST
---------------------------- */
-function detectType(filename) {
-  const ext = path.extname(filename).toLowerCase();
-  if ([".mp4", ".mov", ".mkv", ".webm", ".avi", ".ts"].includes(ext))
-    return "video";
-  if ([".mp3", ".wav", ".aac", ".flac", ".ogg", ".m4a"].includes(ext))
-    return "audio";
-  return "unknown";
-}
-
-function listMedia() {
-  return fs.existsSync(MEDIA_DIR)
-    ? fs
-        .readdirSync(MEDIA_DIR)
-        .filter(
-          (f) =>
-            fs.statSync(path.join(MEDIA_DIR, f)).isFile() && !f.startsWith(".")
-        )
-        .map((f) => {
-          const stats = fs.statSync(path.join(MEDIA_DIR, f));
-          return {
-            id: f,
-            name: f,
-            url: `/media/${f}`,
-            size: stats.size,
-            type: detectType(f),
-          };
-        })
-    : [];
-}
-
-app.get("/api/media", (req, res) => res.json({ data: listMedia() }));
-app.get("/api/media/:mediaId", (req, res) => {
-  const media = listMedia().find((m) => m.id === req.params.mediaId);
-  if (!media) return res.status(404).json({ error: "media not found" });
-  res.json({ data: media });
+// --- CLOUDINARY CONFIG ---
+cloudinary.config({
+  cloud_name: "dtsjiqrgd",
+  api_key: 651574195252621,
+  api_secret: "zcyxgefeLsgLwDH0g8q4XdY4Rjc",
 });
 
-/* ---------------------------
-   TRANSCODE WITH ffmpeg-static + execa
---------------------------- */
-
-async function transcodeFile(jobId, inputPath, outPath, codec, bitrate, width) {
-  JOBS[jobId].startedAt = Date.now();
-  JOBS[jobId].status = "processing";
-  JOBS[jobId].progress = 0;
-  persistJobs();
-
-  const videoCodec =
-    !codec || codec === "h264" || codec === "video/h264" ? "libx264" : codec;
-
-  let audioBitrate = bitrate || "1200k";
-  if (/^\d+$/.test(audioBitrate)) audioBitrate = `${audioBitrate}k`;
-
-  const args = ["-y", "-i", inputPath];
-  if (width) args.push("-vf", `scale=${width}:-2`);
-
-  args.push(
-    "-c:v",
-    videoCodec,
-    "-crf",
-    "23",
-    "-preset",
-    "slow",
-    "-c:a",
-    "aac",
-    "-b:a",
-    audioBitrate,
-    outPath
-  );
-
-  function formatBytes(bytes) {
-    if (bytes < 1024) return bytes + " B";
-    const units = ["KB", "MB", "GB"];
-    let i = -1;
-    do {
-      bytes /= 1024;
-      i++;
-    } while (bytes >= 1024 && i < units.length - 1);
-    return bytes.toFixed(2) + " " + units[i];
-  }
-
-  const runFfmpeg = () =>
-    new Promise((resolve, reject) => {
-      const ff = spawn(ffmpegPath, args, { windowsHide: true });
-
-      ff.stderr.on("data", (data) => {
-        const line = data.toString().trim();
-        console.log(`[ffmpeg stderr][job ${jobId}]:`, line);
-
-        const match = line.match(/time=\s*([\d:.]+)/);
-        if (match) {
-          JOBS[jobId].progress = Math.min(JOBS[jobId].progress + 3, 99);
-          JOBS[jobId].updatedAt = Date.now();
-          persistJobs();
-        }
-      });
-
-      ff.on("error", (err) => reject(err));
-
-      ff.on("close", (code) => {
-        if (code === 0) resolve();
-        else reject(new Error(`FFmpeg exited with code ${code}`));
-      });
-    });
-
-  try {
-    await runFfmpeg();
-
-    // --- NEW: get file sizes ---
-    const inputSize = fs.statSync(inputPath).size;
-    const outputSize = fs.existsSync(outPath) ? fs.statSync(outPath).size : 0;
-
-    JOBS[jobId].status = "finished";
-    JOBS[jobId].progress = 100;
-    JOBS[jobId].updatedAt = Date.now();
-    JOBS[jobId].inputSize = inputSize;
-    JOBS[jobId].outputSize = outputSize;
-    JOBS[jobId].outputSizeHuman = formatBytes(outputSize);
-    JOBS[jobId].compressionRatio = outputSize / inputSize;
-    JOBS[jobId].bitrate = bitrate;
-    persistJobs();
-
-    console.log(`[ffmpeg end][job ${jobId}]: completed`);
-  } catch (err) {
-    console.error(`[ffmpeg error][job ${jobId}]:`, err);
-
-    JOBS[jobId].status = "error";
-    JOBS[jobId].detail = err.message;
-    JOBS[jobId].updatedAt = Date.now();
-    persistJobs();
-  }
-}
-
-app.post("/api/transcode", async (req, res) => {
-  try {
-    const { id, codec = "libx264", bitrate = "800k", width } = req.body;
-    console.log("req.body", req.body);
-
-    if (!id) return res.status(400).json({ error: "missing id" });
-
-    const inputPath = path.join(MEDIA_DIR, id);
-    console.log("inputPath", inputPath);
-    if (!fs.existsSync(inputPath) || !fs.statSync(inputPath).isFile())
-      return res.status(400).json({ error: "Invalid media file" });
-
-    const job = createJob({ input: id, type: "transcode" });
-    console.log("created job", job);
-    const jobId = job.jobId;
-
-    const outPath = path.join(TRANSCODE_DIR, `${jobId}.mp4`);
-    console.log("outPath", outPath);
-    JOBS[jobId].outputPath = `/media/transcoded/${jobId}.mp4`;
-    JOBS[jobId].status = "processing";
-    console.log("JOBS[jobId]", JOBS[jobId]);
-    persistJobs();
-
-    // Fire and forget transcoding
-    transcodeFile(jobId, inputPath, outPath, codec, bitrate, width);
-
-    res.json({ jobId, outputUrl: JOBS[jobId].outputPath });
-  } catch (e) {
-    console.error("/api/transcode error", e);
-    return res.status(500).json({ error: "internal" });
-  }
+// Multer storage for original uploads
+const storage = new CloudinaryStorage({
+  cloudinary,
+  params: async (req, file) => ({
+    folder: "media",
+    resource_type: "auto", // auto detects audio/video/image
+  }),
 });
+const upload = multer({ storage });
 
-app.get("/api/transcode/:jobId/status", (req, res) => {
-  const job = JOBS[req.params.jobId];
-  if (!job) return res.status(404).json({ error: "job not found" });
-  res.json(job);
-});
-
-app.delete("/api/transcode/:jobId", (req, res) => {
-  const jobId = req.params.jobId;
-  const job = JOBS[jobId];
-  if (
-    job &&
-    job.outputPath &&
-    fs.existsSync(path.join(__dirname, job.outputPath))
-  ) {
-    fs.rmSync(path.join(__dirname, job.outputPath), {
-      force: true,
-      recursive: true,
-    });
-  }
-  delete JOBS[jobId];
-  persistJobs();
-  res.json({ ok: true });
-});
-
-/* ---------------------------
-   AUTH + UPLOAD
---------------------------- */
+// --- USERS & AUTH ---
 const USERS = {
   "demo@bwm.test": {
     passwordHash: bcrypt.hashSync("password", 8),
@@ -332,37 +101,340 @@ app.post("/api/login", (req, res) => {
   res.json({ token: generateToken(email), email });
 });
 
-const upload = multer({ dest: UPLOADS_DIR });
+/* ---------------------------
+   JOBS STORE
+--------------------------- */
+let JOBS = {};
+const JOBS_FILE = path.join(__dirname, "jobs.json");
 
-app.post("/api/upload", authMiddleware, upload.single("file"), (req, res) => {
-  const file = req.file;
-  if (!file) return res.status(400).json({ error: "no file" });
-  const dest = path.join(MEDIA_DIR, file.originalname);
-  fs.renameSync(file.path, dest);
-  const stats = fs.statSync(dest);
-  res.json({
-    ok: true,
-    name: file.originalname,
-    url: `/media/${file.originalname}`,
-    size: stats.size,
-  });
+function loadJobs() {
+  if (fs.existsSync(JOBS_FILE)) {
+    try {
+      JOBS = JSON.parse(fs.readFileSync(JOBS_FILE, "utf8") || "{}");
+    } catch {
+      JOBS = {};
+    }
+  }
+}
+function persistJobs() {
+  fs.writeFileSync(JOBS_FILE, JSON.stringify(JOBS, null, 2));
+}
+loadJobs();
+
+function createJob({ input, type = "transcode", outputPath = null }) {
+  const jobId = uuidv4();
+  JOBS[jobId] = {
+    jobId,
+    input,
+    type,
+    status: "queued",
+    progress: 0,
+    outputPath,
+    createdAt: Date.now(),
+    startedAt: null,
+    updatedAt: Date.now(),
+    detail: null,
+    durationSec: null,
+    inputSize: null,
+    outputSize: null,
+    outputSizeHuman: null,
+    compressionRatio: null,
+    bitrate: null,
+  };
+  persistJobs();
+  return JOBS[jobId];
+}
+
+/* ---------------------------
+   HELPER FUNCTIONS
+--------------------------- */
+function detectType(filename) {
+  const ext = path.extname(filename).toLowerCase();
+  if ([".mp4", ".mov", ".mkv", ".webm", ".avi", ".ts"].includes(ext))
+    return "video";
+  if ([".mp3", ".wav", ".aac", ".flac", ".ogg", ".m4a"].includes(ext))
+    return "audio";
+  return "unknown";
+}
+
+function formatBytes(bytes) {
+  if (bytes < 1024) return bytes + " B";
+  const units = ["KB", "MB", "GB"];
+  let i = -1;
+  do {
+    bytes /= 1024;
+    i++;
+  } while (bytes >= 1024 && i < units.length - 1);
+  return bytes.toFixed(2) + " " + units[i];
+}
+
+/* ---------------------------
+   UPLOAD ENDPOINT
+--------------------------- */
+app.post(
+  "/api/upload",
+  authMiddleware,
+  upload.single("file"),
+  async (req, res) => {
+    try {
+      const file = req.file;
+      if (!file) return res.status(400).json({ error: "no file" });
+
+      res.json({
+        ok: true,
+        name: file.originalname,
+        url: file.path, // Cloudinary URL
+        size: file.size,
+      });
+    } catch (err) {
+      console.error("Upload error:", err);
+      res.status(500).json({ error: "internal" });
+    }
+  }
+);
+
+/* ---------------------------
+   MEDIA LIST / DETAIL
+--------------------------- */
+app.get("/api/media", async (req, res) => {
+  try {
+    const result = await cloudinary.search
+      .expression('folder="media"') // or public_id starts with media/
+      .max_results(500)
+      .execute();
+
+    const data = result.resources.map((r) => ({
+      id: r.public_id,
+      name: r.public_id.split("/").pop(),
+      url: r.secure_url,
+      size: r.bytes,
+
+      // map to FE expected type
+      type:
+        r.resource_type === "video"
+          ? "video"
+          : r.resource_type === "image"
+          ? "image"
+          : "audio",
+    }));
+
+    res.json({ data });
+  } catch (err) {
+    console.error("Cloudinary list error:", err);
+    res.status(500).json({ error: "failed to list media" });
+  }
 });
 
-// export default async function handler(req, res) {
-//   // Serve API endpoints
-//   if (req.url.startsWith("/api")) {
-//     if (req.url === "/api/test") {
-//       res.status(200).json({ message: "API works!" });
-//       return;
-//     }
-//     res.status(404).json({ message: "Not found" });
-//     return;
-//   }
+app.get("/api/media/:mediaId", async (req, res) => {
+  try {
+    const publicId = `media/${req.params.mediaId}`;
 
-//   // Serve SSR frontend
-//   const requestHandler = createRequestHandler({ build });
-//   return requestHandler(req, res);
-// }
+    const result = await cloudinary.search
+      .expression(`public_id="${publicId}"`)
+      .max_results(1)
+      .execute();
+
+    if (!result.resources.length)
+      return res.status(404).json({ error: "media not found" });
+
+    const r = result.resources[0];
+
+    const data = {
+      id: r.public_id,
+      name: r.public_id.split("/").pop(),
+      url: r.secure_url,
+      size: r.bytes,
+      type:
+        r.resource_type === "video"
+          ? "video"
+          : r.resource_type === "image"
+          ? "image"
+          : "audio",
+    };
+
+    res.json({ data });
+  } catch (err) {
+    console.error("Cloudinary fetch error:", err);
+    res.status(500).json({ error: "failed to fetch media" });
+  }
+});
+
+/**
+ * Download a file from URL to local temp path
+ */
+async function downloadFile(url, localPath) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to download file: ${res.statusText}`);
+  const buffer = Buffer.from(await res.arrayBuffer());
+  fs.writeFileSync(localPath, buffer);
+  const stats = fs.statSync(localPath);
+  if (!stats.size) throw new Error("Downloaded file is empty");
+  return localPath;
+}
+
+/**
+ * Transcode (video or audio) and upload to Cloudinary
+ */
+async function transcodeFile(
+  jobId,
+  mediaUrl,
+  codec = "libx264",
+  bitrate = "800k",
+  width
+) {
+  try {
+    const tempDir = "/tmp";
+    fs.mkdirSync(tempDir, { recursive: true });
+
+    // Detect file type by extension
+    const ext = path.extname(mediaUrl).toLowerCase();
+    const isVideo = [".mp4", ".mov", ".mkv", ".webm", ".avi", ".ts"].includes(
+      ext
+    );
+    const outExt = isVideo ? "mp4" : "mp3";
+
+    const inputPath = path.join(tempDir, `${jobId}-input${ext}`);
+    const outputPath = path.join(tempDir, `${jobId}-output.${outExt}`);
+
+    // Download Cloudinary file
+    await downloadFile(mediaUrl, inputPath);
+
+    // Initialize JOB
+    JOBS[jobId].startedAt = Date.now();
+    JOBS[jobId].status = "processing";
+    JOBS[jobId].progress = 0;
+    JOBS[jobId].updatedAt = Date.now();
+    persistJobs();
+
+    // FFmpeg arguments
+    const videoCodec = !codec || codec === "h264" ? "libx264" : codec;
+    let audioBitrate = bitrate || "1200k";
+    if (/^\d+$/.test(audioBitrate)) audioBitrate = `${audioBitrate}k`;
+
+    const args = ["-y", "-i", inputPath];
+
+    if (isVideo) {
+      if (width) args.push("-vf", `scale=${width}:-2`);
+      args.push("-c:v", videoCodec, "-crf", "23", "-preset", "slow");
+      args.push("-c:a", "aac", "-b:a", audioBitrate);
+    } else {
+      // Audio-only
+      args.push("-c:a", "aac", "-b:a", audioBitrate);
+    }
+
+    args.push(outputPath);
+
+    // Run FFmpeg
+    await new Promise((resolve, reject) => {
+      const ff = spawn(ffmpegPath, args, { windowsHide: true });
+
+      ff.stderr.on("data", (data) => {
+        const line = data.toString().trim();
+        // rough progress update
+        if (line.includes("time=")) {
+          JOBS[jobId].progress = Math.min(JOBS[jobId].progress + 3, 99);
+          JOBS[jobId].updatedAt = Date.now();
+          persistJobs();
+        }
+      });
+
+      ff.on("error", (err) => reject(err));
+      ff.on("close", (code) => {
+        if (code === 0) resolve();
+        else reject(new Error(`FFmpeg exited with code ${code}`));
+      });
+    });
+
+    // File sizes
+    const inputSize = fs.statSync(inputPath).size;
+    const outputSize = fs.statSync(outputPath).size;
+
+    // Upload to Cloudinary
+    const uploaded = await cloudinary.uploader.upload(outputPath, {
+      resource_type: "video", // works for mp4 and mp3
+      folder: "media/transcoded",
+      public_id: jobId,
+      overwrite: true,
+    });
+
+    // Update JOBS
+    JOBS[jobId].status = "finished";
+    JOBS[jobId].progress = 100;
+    JOBS[jobId].updatedAt = Date.now();
+    JOBS[jobId].outputPath = uploaded.secure_url; // Cloudinary URL
+    JOBS[jobId].inputSize = inputSize;
+    JOBS[jobId].outputSize = outputSize;
+    JOBS[jobId].outputSizeHuman = `${(outputSize / 1024 / 1024).toFixed(2)} MB`;
+    JOBS[jobId].compressionRatio = outputSize / inputSize;
+    JOBS[jobId].bitrate = bitrate;
+    persistJobs();
+
+    // Cleanup
+    fs.rmSync(inputPath, { force: true });
+    fs.rmSync(outputPath, { force: true });
+
+    console.log(`[transcode][job ${jobId}] completed`);
+  } catch (err) {
+    console.error(`[transcode error][job ${jobId}]`, err);
+    JOBS[jobId].status = "error";
+    JOBS[jobId].detail = err.message;
+    JOBS[jobId].updatedAt = Date.now();
+    persistJobs();
+  }
+}
+
+/**
+ * /api/transcode endpoint
+ */
+app.post("/api/transcode", async (req, res) => {
+  try {
+    const { id, codec = "libx264", bitrate = "800k", width } = req.body;
+    if (!id) return res.status(400).json({ error: "missing id" });
+
+    // Fetch media info from Cloudinary
+    const search = await cloudinary.search
+      .expression(`public_id="media/${id}"`)
+      .max_results(1)
+      .execute();
+
+    if (!search.resources.length) {
+      return res.status(400).json({ error: "Invalid media file" });
+    }
+
+    const mediaResource = search.resources[0];
+    const mediaUrl = mediaResource.secure_url;
+
+    // Create JOB with all fields
+    const job = createJob({ input: id, type: "transcode" });
+    const jobId = job.jobId;
+
+    JOBS[jobId].outputPath = null; // will be set when done
+    JOBS[jobId].status = "processing";
+    persistJobs();
+
+    // Fire-and-forget transcoding
+    transcodeFile(jobId, mediaUrl, codec, bitrate, width);
+
+    // FE-safe response
+    res.json({ jobId, outputUrl: JOBS[jobId].outputPath });
+  } catch (e) {
+    console.error("/api/transcode error", e);
+    return res.status(500).json({ error: "internal" });
+  }
+});
+
+app.get("/api/transcode/:jobId/status", (req, res) => {
+  const job = JOBS[req.params.jobId];
+  if (!job) return res.status(404).json({ error: "job not found" });
+  res.json(job);
+});
+
+app.delete("/api/transcode/:jobId", (req, res) => {
+  const jobId = req.params.jobId;
+  delete JOBS[jobId];
+  persistJobs();
+  res.json({ ok: true });
+});
 
 /* ---------------------------
    START SERVER

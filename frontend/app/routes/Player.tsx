@@ -92,7 +92,7 @@ export default function Player() {
     if (!recommendation) return;
 
     nav(
-      `/compress/${encodeURIComponent(media.id)}?width=${recommendation.width}&bitrate=${recommendation.bitrate}`
+      `/compress/${media.name}?width=${recommendation.width}&bitrate=${recommendation.bitrate}`
     );
   }
 
@@ -116,7 +116,7 @@ export default function Player() {
 
           <button
             className="px-3 py-1 bg-sky-600 text-white rounded"
-            onClick={() => nav(`/compress/${encodeURIComponent(media.id)}`)}
+            onClick={() => nav(`/compress/${media.name}`)}
           >
             Compress
           </button>
@@ -129,7 +129,7 @@ export default function Player() {
           <video
             controls
             className="w-full max-h-[60vh] rounded"
-            src={`${backend}${media.url}`}
+            src={media.url}
           />
         ) : (
           <audio controls className="w-full" src={`${backend}${media.url}`} />

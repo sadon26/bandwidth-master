@@ -35,7 +35,7 @@ export default function Compress() {
 
   return (
     <div className="space-y-6 p-6">
-      <h2 className="text-2xl font-bold">Compress: {media.name}</h2>
+      <h2 className="text-2xl font-bold">Compress: {media.id}</h2>
 
       {status?.status === "finished" && (
         <CompressionChart
@@ -59,7 +59,7 @@ export default function Compress() {
                 <HLSPlayer src={`${backendUrl}${status.outputPath}`} />
               ) : (
                 <video
-                  src={`${backendUrl}${media?.url}`}
+                  src={media?.url}
                   controls
                   className="w-full rounded max-h-96 object-contain"
                 />
@@ -82,7 +82,7 @@ export default function Compress() {
                   <HLSPlayer src={`${backendUrl}${status.outputPath}`} />
                 ) : (
                   <video
-                    src={`${backendUrl}${status.outputPath}`}
+                    src={status.outputPath}
                     controls
                     className="w-full rounded max-h-96 object-contain"
                   />

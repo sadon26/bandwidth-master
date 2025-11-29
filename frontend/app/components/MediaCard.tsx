@@ -22,7 +22,7 @@ export default function MediaCard({ media, layout = "grid" }) {
         >
           {isVideo ? (
             <video
-              src={`${BACKEND_URL}${media.url}`}
+              src={media.url}
               className="w-full h-full object-cover"
               muted
             />
@@ -43,13 +43,13 @@ export default function MediaCard({ media, layout = "grid" }) {
 
       <div className="flex gap-2 mt-3 sm:mt-0">
         <button
-          onClick={() => nav(`/player/${encodeURIComponent(media.id)}`)}
+          onClick={() => nav(`/player/${encodeURIComponent(media.name)}`)}
           className="px-3 py-1 bg-white border rounded"
         >
           View
         </button>
         <button
-          onClick={() => nav(`/compress/${encodeURIComponent(media.id)}`)}
+          onClick={() => nav(`/compress/${encodeURIComponent(media.name)}`)}
           className="px-3 py-1 bg-sky-600 text-white rounded"
         >
           Compress

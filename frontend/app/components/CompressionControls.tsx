@@ -102,7 +102,10 @@ export default function CompressionControls({ media, mediaId, onStart }) {
       <div className="flex gap-2">
         <button
           className="px-4 py-2 bg-white border rounded"
-          onClick={() => navigator.clipboard?.writeText(window.location.href)}
+          onClick={() => {
+            navigator.clipboard?.writeText(window.location.href);
+            alert("Page link copied to clipboard!");
+          }}
         >
           Share
         </button>
