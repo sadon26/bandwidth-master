@@ -7,9 +7,9 @@ export default defineConfig({
   plugins: [tailwindcss(), reactRouter(), tsconfigPaths()],
   server: {
     proxy: {
-      "/api": "https://bandwidth-master-37z1.vercel.app",
-      "/media": "https://bandwidth-master-37z1.vercel.app/media",
-      "/ping-1mb.bin": "https://bandwidth-master-37z1.vercel.app",
+      "/api": "https://bandwidth-master-5.onrender.com",
+      "/media": "https://bandwidth-master-5.onrender.com/media",
+      "/ping-1mb.bin": "https://bandwidth-master-5.onrender.com",
     },
   },
 });

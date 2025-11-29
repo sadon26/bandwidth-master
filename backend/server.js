@@ -20,9 +20,21 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
+const allowedOrigins = [
+  "http://localhost:5173", // local dev frontend
+  "https://bandwidth-master-37z1.vercel.app", // production frontend
+];
+
 app.use(
   cors({
-    origin: "https://bandwidth-master-37z1.vercel.app" || "*", // for prod, set exact origin
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS: " + origin));
+      }
+    },
+    credentials: true,
   })
 );
 // app.use(

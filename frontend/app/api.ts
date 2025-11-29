@@ -1,6 +1,7 @@
 import axios from "axios";
 
-const BACKEND = import.meta.env.VITE_BACKEND_URL || "http://localhost:3001";
+const BACKEND =
+  import.meta.env.VITE_BACKEND_URL || "https://bandwidth-master-5.onrender.com";
 
 export const api = axios.create({
   baseURL: BACKEND,
