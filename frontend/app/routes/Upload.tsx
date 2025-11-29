@@ -3,6 +3,7 @@ import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import Header from "~/components/Header";
 import { BACKEND_URL } from "~/api";
+import { useLocation } from "react-router";
 
 export default function Upload() {
   const { token } = useAuth();
@@ -11,6 +12,8 @@ export default function Upload() {
   const [dragging, setDragging] = useState(false);
   const [msg, setMsg] = useState("");
   const [progress, setProgress] = useState(0);
+
+  const { pathname } = useLocation();
 
   function handleFileSelect(f: File | null) {
     setFile(f);
@@ -54,7 +57,7 @@ export default function Upload() {
     <>
       <div className="min-h-screen bg-slate-900 text-white p-8 flex flex-col items-center">
         <div className="mb-10 w-full">
-          <Header />
+          <Header darkMode={pathname === "/upload"} />
         </div>
         <h1 className="text-4xl font-bold mb-8">Upload Media</h1>
 

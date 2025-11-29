@@ -10,8 +10,10 @@ export default function MediaLibrary() {
   const [loading, setLoading] = useState(true);
 
   async function load() {
+    setLoading(true);
     const data = await listMedia();
     setLoading(false);
+    setQ("");
     setList(data);
   }
 
