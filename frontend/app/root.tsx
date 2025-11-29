@@ -14,6 +14,13 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import { Suspense, type JSX } from "react";
 import Login from "./routes/Login";
 
+export function meta({}: Route.MetaArgs) {
+  return [
+    { title: "Bandwidth Master" },
+    { name: "description", content: "Smart media compression & playback" },
+  ];
+}
+
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
   {
