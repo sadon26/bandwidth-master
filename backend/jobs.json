@@ -1527,5 +1527,41 @@
     "outputSizeHuman": "0.81 MB",
     "compressionRatio": 0.24334395468224465,
     "bitrate": "1200k"
+  },
+  "35a46dc7-348f-4dbf-b731-8b85916365bc": {
+    "jobId": "35a46dc7-348f-4dbf-b731-8b85916365bc",
+    "input": "i5ta7rimnqkaztp4mpiu",
+    "type": "transcode",
+    "status": "finished",
+    "progress": 100,
+    "outputPath": "https://res.cloudinary.com/dtsjiqrgd/video/upload/v1764389529/media/transcoded/35a46dc7-348f-4dbf-b731-8b85916365bc.mp4",
+    "createdAt": 1764389527111,
+    "startedAt": 1764389528112,
+    "updatedAt": 1764389530810,
+    "detail": null,
+    "durationSec": null,
+    "inputSize": 3502380,
+    "outputSize": 852283,
+    "outputSizeHuman": "0.81 MB",
+    "compressionRatio": 0.24334395468224465,
+    "bitrate": "1500k"
+  },
+  "cc3fa135-c593-4305-ac74-b35a78a29426": {
+    "jobId": "cc3fa135-c593-4305-ac74-b35a78a29426",
+    "input": "i5ta7rimnqkaztp4mpiu",
+    "type": "transcode",
+    "status": "finished",
+    "progress": 100,
+    "outputPath": "https://res.cloudinary.com/dtsjiqrgd/video/upload/v1764389670/media/transcoded/cc3fa135-c593-4305-ac74-b35a78a29426.mp4",
+    "createdAt": 1764389667608,
+    "startedAt": 1764389668705,
+    "updatedAt": 1764389671873,
+    "detail": null,
+    "durationSec": null,
+    "inputSize": 3502380,
+    "outputSize": 852287,
+    "outputSizeHuman": "0.81 MB",
+    "compressionRatio": 0.24334509676277274,
+    "bitrate": "1500k"
   }
 }

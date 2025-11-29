@@ -260,22 +260,23 @@ app.get("/api/media/:mediaId", async (req, res) => {
 });
 
 /**
- * Download a file from URL to local temp path
+ * Download file from URL to local temp path
  */
 async function downloadFile(url, localPath) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Failed to download file: ${res.statusText}`);
   const buffer = Buffer.from(await res.arrayBuffer());
   fs.writeFileSync(localPath, buffer);
+
   const stats = fs.statSync(localPath);
   if (!stats.size) throw new Error("Downloaded file is empty");
   return localPath;
 }
 
 /**
- * Transcode (video or audio) and upload to Cloudinary
+ * Transcode and upload to Cloudinary (Render-safe)
  */
-async function transcodeFile(
+export async function transcodeFile(
   jobId,
   mediaUrl,
   codec = "libx264",
@@ -286,7 +287,7 @@ async function transcodeFile(
     const tempDir = "/tmp";
     fs.mkdirSync(tempDir, { recursive: true });
 
-    // Detect file type by extension
+    // Detect type
     const ext = path.extname(mediaUrl).toLowerCase();
     const isVideo = [".mp4", ".mov", ".mkv", ".webm", ".avi", ".ts"].includes(
       ext
@@ -296,41 +297,41 @@ async function transcodeFile(
     const inputPath = path.join(tempDir, `${jobId}-input${ext}`);
     const outputPath = path.join(tempDir, `${jobId}-output.${outExt}`);
 
-    // Download Cloudinary file
+    // Download file from Cloudinary
     await downloadFile(mediaUrl, inputPath);
 
-    // Initialize JOB
+    // Init JOB
     JOBS[jobId].startedAt = Date.now();
     JOBS[jobId].status = "processing";
     JOBS[jobId].progress = 0;
     JOBS[jobId].updatedAt = Date.now();
     persistJobs();
 
-    // FFmpeg arguments
+    // FFmpeg args
     const videoCodec = !codec || codec === "h264" ? "libx264" : codec;
     let audioBitrate = bitrate || "1200k";
     if (/^\d+$/.test(audioBitrate)) audioBitrate = `${audioBitrate}k`;
 
     const args = ["-y", "-i", inputPath];
-
     if (isVideo) {
       if (width) args.push("-vf", `scale=${width}:-2`);
       args.push("-c:v", videoCodec, "-crf", "23", "-preset", "slow");
       args.push("-c:a", "aac", "-b:a", audioBitrate);
     } else {
-      // Audio-only
       args.push("-c:a", "aac", "-b:a", audioBitrate);
     }
-
     args.push(outputPath);
 
-    // Run FFmpeg
+    // Use system ffmpeg if ffmpeg-static fails on Render
+    const ffmpegCmd = "ffmpeg";
+
     await new Promise((resolve, reject) => {
-      const ff = spawn(ffmpegPath, args, { windowsHide: true });
+      const ff = spawn(ffmpegCmd, args, { windowsHide: true });
 
       ff.stderr.on("data", (data) => {
         const line = data.toString().trim();
-        // rough progress update
+        console.log(`[ffmpeg][job ${jobId}]`, line);
+
         if (line.includes("time=")) {
           JOBS[jobId].progress = Math.min(JOBS[jobId].progress + 3, 99);
           JOBS[jobId].updatedAt = Date.now();
@@ -349,7 +350,7 @@ async function transcodeFile(
     const inputSize = fs.statSync(inputPath).size;
     const outputSize = fs.statSync(outputPath).size;
 
-    // Upload to Cloudinary
+    // Upload transcoded file to Cloudinary
     const uploaded = await cloudinary.uploader.upload(outputPath, {
       resource_type: "video", // works for mp4 and mp3
       folder: "media/transcoded",
@@ -361,7 +362,7 @@ async function transcodeFile(
     JOBS[jobId].status = "finished";
     JOBS[jobId].progress = 100;
     JOBS[jobId].updatedAt = Date.now();
-    JOBS[jobId].outputPath = uploaded.secure_url; // Cloudinary URL
+    JOBS[jobId].outputPath = uploaded.secure_url;
     JOBS[jobId].inputSize = inputSize;
     JOBS[jobId].outputSize = outputSize;
     JOBS[jobId].outputSizeHuman = `${(outputSize / 1024 / 1024).toFixed(2)} MB`;
