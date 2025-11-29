@@ -1,6 +1,14 @@
 import { Link } from "react-router";
+import { useAuth } from "~/context/AuthContext";
 
 export default function Header() {
+  const { logout } = useAuth();
+
+  const logoutUser = () => {
+    logout();
+    window.location.href = "/login";
+  };
+
   return (
     <header className="mb-6 flex items-center justify-between">
       <Link to="/" className="flex items-center gap-3">
@@ -18,6 +26,13 @@ export default function Header() {
       <nav className="flex items-center gap-3">
         <Link to="/" className="text-sm text-slate-700 hover:text-sky-600">
           Dashboard
+        </Link>
+        <Link
+          to="/"
+          className="text-sm text-slate-700 hover:text-red-600"
+          onClick={logout}
+        >
+          Logout
         </Link>
       </nav>
     </header>

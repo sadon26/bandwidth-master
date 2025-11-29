@@ -1221,5 +1221,23 @@
     "outputSizeHuman": "1.31 MB",
     "compressionRatio": 0.39216989589935985,
     "bitrate": "1500k"
+  },
+  "3760b986-e349-481e-90ca-100f8bfae85c": {
+    "jobId": "3760b986-e349-481e-90ca-100f8bfae85c",
+    "input": "179212-861403629.mp4",
+    "type": "transcode",
+    "status": "finished",
+    "progress": 100,
+    "outputPath": "/media/transcoded/3760b986-e349-481e-90ca-100f8bfae85c.mp4",
+    "createdAt": 1764378387861,
+    "startedAt": 1764378387864,
+    "updatedAt": 1764378391312,
+    "detail": null,
+    "durationSec": null,
+    "inputSize": 13000917,
+    "outputSize": 2284142,
+    "outputSizeHuman": "2.18 MB",
+    "compressionRatio": 0.1756908378078254,
+    "bitrate": "1500k"
   }
 }
