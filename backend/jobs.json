@@ -1509,5 +1509,23 @@
     "outputSizeHuman": "0.81 MB",
     "compressionRatio": 0.24334395468224465,
     "bitrate": "1500k"
+  },
+  "b8a45f26-92d8-4751-877a-7e4abf350c75": {
+    "jobId": "b8a45f26-92d8-4751-877a-7e4abf350c75",
+    "input": "i5ta7rimnqkaztp4mpiu",
+    "type": "transcode",
+    "status": "finished",
+    "progress": 100,
+    "outputPath": "https://res.cloudinary.com/dtsjiqrgd/video/upload/v1764389087/media/transcoded/b8a45f26-92d8-4751-877a-7e4abf350c75.mp4",
+    "createdAt": 1764389083506,
+    "startedAt": 1764389085494,
+    "updatedAt": 1764389089195,
+    "detail": null,
+    "durationSec": null,
+    "inputSize": 3502380,
+    "outputSize": 852283,
+    "outputSizeHuman": "0.81 MB",
+    "compressionRatio": 0.24334395468224465,
+    "bitrate": "1200k"
   }
 }
