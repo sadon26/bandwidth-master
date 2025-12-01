@@ -37,7 +37,7 @@ export const links: Route.LinksFunction = () => [
 function PrivateRoute({ children }: { children: JSX.Element }) {
   const { token } = useAuth();
 
-  if (typeof window === undefined) return null;
+  if (!window) return null;
   return token ? children : <Login />;
 }
 
