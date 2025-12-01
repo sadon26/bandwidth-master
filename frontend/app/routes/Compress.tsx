@@ -20,7 +20,6 @@ export default function Compress() {
   }, [mediaId]);
 
   async function onStart(opts) {
-    console.log(opts);
     try {
       const resp = await startTranscode(opts);
       setJobId(resp.jobId);
