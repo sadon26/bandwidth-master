@@ -335,7 +335,7 @@ export async function transcodeFile(
       ff.stderr.on("data", (data) => {
         const line = data.toString();
         if (line.includes("time=")) {
-          JOBS[jobId].progress = Math.min(JOBS[jobId].progress + 5, 100);
+          JOBS[jobId].progress = Math.min(JOBS[jobId].progress + 5, 99);
           JOBS[jobId].updatedAt = Date.now();
           persistJobs();
         }

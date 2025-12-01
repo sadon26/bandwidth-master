@@ -1,20 +1,20 @@
 {
-  "e278b523-258b-4fac-921e-5f9a50482781": {
-    "jobId": "e278b523-258b-4fac-921e-5f9a50482781",
+  "a642a59f-b2c3-4128-828f-9ab7a66a8f34": {
+    "jobId": "a642a59f-b2c3-4128-828f-9ab7a66a8f34",
     "input": "ntbbsudjtx27mzadn5ao",
     "type": "transcode",
     "status": "finished",
     "progress": 100,
-    "outputPath": "https://res.cloudinary.com/dtsjiqrgd/video/upload/v1764520233/media/transcoded/e278b523-258b-4fac-921e-5f9a50482781.mp4",
-    "createdAt": 1764520227756,
-    "startedAt": 1764520229911,
-    "updatedAt": 1764520234227,
+    "outputPath": "https://res.cloudinary.com/dtsjiqrgd/video/upload/v1764582128/media/transcoded/a642a59f-b2c3-4128-828f-9ab7a66a8f34.mp4",
+    "createdAt": 1764582119436,
+    "startedAt": 1764582121398,
+    "updatedAt": 1764582129015,
     "detail": null,
     "durationSec": null,
     "inputSize": 11518712,
-    "outputSize": 2248114,
-    "outputSizeHuman": "2.14 MB",
-    "compressionRatio": 0.19517060588024077,
-    "bitrate": "800k"
+    "outputSize": 6232417,
+    "outputSizeHuman": "5.94 MB",
+    "compressionRatio": 0.5410689146494851,
+    "bitrate": "1500k"
   }
 }
