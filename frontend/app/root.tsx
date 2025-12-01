@@ -37,7 +37,7 @@ export const links: Route.LinksFunction = () => [
 function PrivateRoute({ children }: { children: JSX.Element }) {
   const { token } = useAuth();
 
-  if (!window) return null;
+  if (typeof window === undefined) return null;
   return token ? children : <Login />;
 }
 
@@ -50,7 +50,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Meta />
         <Links />
       </head>
-      <body>
+      <body suppressHydrationWarning>
         {children}
         <ScrollRestoration />
         <Scripts />
