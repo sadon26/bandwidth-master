@@ -407,10 +407,6 @@ app.post("/api/transcode", async (req, res) => {
     const mediaResource = search.resources[0];
     const mediaUrl = mediaResource.secure_url;
 
-    // Reset jobs
-    JOBS = {};
-    persistJobs();
-
     const job = createJob({ input: id });
     const jobId = job.jobId;
 
