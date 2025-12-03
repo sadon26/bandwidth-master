@@ -1,6 +1,7 @@
 import axios from "axios";
 
-export const BACKEND_URL = "https://bandwidth-master-5.onrender.com";
+export const BACKEND_URL =
+  "https://balanced-serenity-production-de64.up.railway.app";
 
 export const api = axios.create({
   baseURL: BACKEND_URL,

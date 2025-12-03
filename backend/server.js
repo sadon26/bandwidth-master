@@ -10,7 +10,6 @@ import jwt from "jsonwebtoken";
 import multer from "multer";
 import bcrypt from "bcryptjs";
 import { spawn } from "child_process";
-import ffmpegPath from "ffmpeg-static";
 import { v2 as cloudinary } from "cloudinary";
 import { CloudinaryStorage } from "multer-storage-cloudinary";
 import fetch from "node-fetch";
@@ -35,6 +34,7 @@ const app = express();
 const allowedOrigins = [
   "http://localhost:5173",
   "https://bandwidth-master-37z1.vercel.app",
+  "balanced-serenity-production-de64.up.railway.app",
 ];
 
 app.use(
