@@ -29,6 +29,21 @@ export default function Compress() {
     }
   }
 
+  async function downloadCompressed() {
+    const response = await fetch(status?.outputPath);
+    const blob = await response.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    link.download = `${mediaId}-compressed`;
+    document.body.appendChild(link);
+    link.click();
+
+    link.remove();
+    window.URL.revokeObjectURL(blobUrl);
+  }
+
   function formatDuration(ms: number): string {
     if (typeof ms !== "number" || isNaN(ms)) return "00:00";
 
@@ -152,13 +167,12 @@ export default function Compress() {
                 {status?.outputPath && status?.status === "finished" && (
                   <div className="text-sm">
                     Output:{" "}
-                    <a
+                    <button
                       className="text-sky-600 capitalize"
-                      href={`${backendUrl}${status.outputPath}`}
-                      target="_blank"
+                      onClick={downloadCompressed}
                     >
                       download
-                    </a>
+                    </button>
                   </div>
                 )}
               </div>
