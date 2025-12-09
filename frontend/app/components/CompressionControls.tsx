@@ -149,7 +149,7 @@ export default function CompressionControls({
         >
           Share
         </button>
-        {!["processing", "uploading to bucket"].includes(status) && (
+        {!["processing", "uploading to bucket"].includes(status?.status) && (
           <button
             className="px-4 py-2 bg-sky-600 text-white rounded"
             onClick={start}

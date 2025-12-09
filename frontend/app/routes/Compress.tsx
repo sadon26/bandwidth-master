@@ -166,12 +166,11 @@ export default function Compress() {
                 )}
                 {status?.outputPath && status?.status === "finished" && (
                   <div className="text-sm">
-                    Output:{" "}
                     <button
-                      className="text-sky-600 capitalize"
+                      className="px-4 py-2 bg-green-600 text-white rounded"
                       onClick={downloadCompressed}
                     >
-                      download
+                      Download
                     </button>
                   </div>
                 )}
