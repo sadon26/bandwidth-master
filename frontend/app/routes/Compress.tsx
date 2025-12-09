@@ -165,7 +165,7 @@ export default function Compress() {
                   </p>
                 )}
                 {status?.outputPath && status?.status === "finished" && (
-                  <div className="text-sm">
+                  <div className="text-sm flex justify-end">
                     <button
                       className="px-4 py-2 bg-green-600 text-white rounded"
                       onClick={downloadCompressed}
