@@ -41,6 +41,10 @@ export default function Login() {
         <h1 className="text-3xl font-semibold text-white mb-6 text-center">
           Bandwidth Master
         </h1>
+        <p className="text-center text-xs bg-gray-500 mb-3 rounded-md p-1 text-yellow-300">
+          Email: <span className="text-white font-bold">demo@bwm.test</span> •
+          Password: <span className="text-white font-bold">password</span>
+        </p>
 
         {error && (
           <div className="text-red-300 text-sm mb-3 text-center">{error}</div>

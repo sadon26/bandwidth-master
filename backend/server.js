@@ -34,7 +34,7 @@ const app = express();
 const allowedOrigins = [
   "http://localhost:5173",
   "https://bandwidth-master-37z1.vercel.app",
-  "balanced-serenity-production-de64.up.railway.app",
+  "bandwidth-master-production.up.railway.app",
 ];
 
 app.use(
