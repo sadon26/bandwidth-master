@@ -1,6 +1,7 @@
 import axios from "axios";
 
-export const BACKEND_URL = "https://bandwidth-master-production.up.railway.app";
+export const BACKEND_URL =
+  "https://bandwidth-master-production-f9bb.up.railway.app";
 
 export const api = axios.create({
   baseURL: BACKEND_URL,
